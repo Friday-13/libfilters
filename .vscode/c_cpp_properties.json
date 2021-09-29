@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "arm_c_cpp_properties",
+            "compilerPath": "D:/STM32Software/EmbeddedGCC/arm_gcc/bin/arm-none-eabi-gcc.exe",
+            "includePath": [
+				"D:/STM32Software/EmbeddedGCC/arm_gcc/arm-none-eabi/include",
+				"D:/STM32Software/EmbeddedGCC/arm_gcc/arm-none-eabi/include/sys/",
+				"D:/STM32Software/EmbeddedGCC/arm_gcc/lib/**",
+
+				"${workspaceRoot}\\Drivers\\**",
+				"${workspaceRoot}\\Core\\Src\\**",
+                "${workspaceRoot}\\Core\\Inc\\**"
+
+                /*"${workspaceRoot}\\Middlewares\\ST\\STM32_USB_Device_Library\\Core\\Inc\\**",
+                "${workspaceRoot}\\Middlewares\\ST/STM32_USB_Device_Library\\Class\\CDC\\Inc\\**",
+                "${workspaceRoot}\\USB_DEVICE\\App\\**",
+                "${workspaceRoot}\\USB_DEVICE\\Target\\**" */
+            ],
+            "defines": [
+				"USE_HAL_DRIVER",
+				"STM32F103xB",
+				"M3",
+				"GCC_ARMCM3"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+			"intelliSenseMode": "gcc-x64"
+        }
+    ],
+    "version": 4
+}

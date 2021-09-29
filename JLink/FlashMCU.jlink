@@ -1,0 +1,6 @@
+r
+loadbin build\FiltersLib.bin, 0x00
+verifybin build\FiltersLib.bin, 0x00
+r
+g
+q
