@@ -17,6 +17,11 @@ static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART3_UART_Init(void);
 
+AverFilterStruct testAverFilter;
+ExclAverFilterStruct testExclAverFilter;
+MidleOf3FilterStruct testMidleOf3Filter;
+RuningAverFilterStruct testRunAverFilter;
+
 /**
   * @brief  The application entry point.
   * @retval int
@@ -28,18 +33,30 @@ int main(void)
   MX_GPIO_Init();
   MX_ADC1_Init();
   MX_USART3_UART_Init();
+  
+  InitAverFilter(&testAverFilter, 10, 1);
+  InitExclAverFilter(&testExclAverFilter, 10, 1);
+  InitMidleOf3Filter(&testMidleOf3Filter, 1);
+  InitRuningAverFilterr(&testRunAverFilter, 0.7, 1);
 
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_ADCEx_InjectedStart_IT(&hadc1);
 
   while (1)
   {
-    snprintf(trans_str, 63, "ADC inj1 %d inj2 %d inj3 %d\n", (uint16_t)adc[0], (uint16_t)adc[1], (uint16_t)adc[2]);
-    HAL_UART_Transmit(&huart3, (uint8_t *)trans_str, strlen(trans_str), 1000);
+
+    testAverFilter.Value = adc[0];
+    testExclAverFilter.Value = adc[0];
+    testMidleOf3Filter.Value = adc[0];
+    testRunAverFilter.Value = adc[0];
+    
+    FilterHandler(&testAverFilter);
+    FilterHandler(&testExclAverFilter);
+    FilterHandler(&testMidleOf3Filter);
+    FilterHandler(&testRunAverFilter);
     HAL_ADCEx_InjectedStart_IT(&hadc1);
     HAL_Delay(100);
   }
-  /* USER CODE END 3 */
 }
 
 /**

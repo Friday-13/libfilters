@@ -1,178 +1,172 @@
 #include "libFilters.h"
-uint8_t EndOfFilterFlag = 0;
-uint8_t EndOfCombinedFilter = 0;
-uint16_t SampleSize = 7;
-float RunningAverageCoeff = 0.7;
+
+void InitAverFilter(AverFilterStruct *Signal, uint8_t SampleSize, uint8_t SampleFreq)
+{
+    Signal->SampleSize = SampleSize;
+    Signal->SampleFreq = SampleFreq;
+    Signal->Value = 0;
+    Signal->Out = 0;
+    Signal->Sum = 0;
+    Signal->SampleCount = 0;
+    Signal->SampleFreqCount = 0;
+    Signal->Filtered = 0;
+}
+void InitExclAverFilter(ExclAverFilterStruct *Signal, uint8_t SampleSize, uint8_t SampleFreq)
+{
+    Signal->SampleSize = SampleSize;
+    Signal->SampleFreq = SampleFreq;
+    Signal->Value = 0;
+    Signal->Out = 0;
+    Signal->Sum = 0;
+    Signal->MaxValue = 0;
+    Signal->MinValue = UINT16_MAX;
+    Signal->SampleCount = 0;
+    Signal->SampleFreqCount = 0;
+    Signal->Filtered = 0;
+}
+void InitMidleOf3Filter(MidleOf3FilterStruct *Signal, uint8_t SampleFreq)
+{
+    Signal->SampleFreq = SampleFreq;
+    Signal->Value = 0;
+    Signal->Out = 0;
+    Signal->MaxValueInd = 0;
+    Signal->MinValueInd = 0;
+    Signal->SampleCount = 0;
+    Signal->SampleFreqCount = 0;
+    Signal->Filtered = 0;
+}
+void InitRuningAverFilterr(RuningAverFilterStruct *Signal, float RunAverCoef, uint8_t SampleFreq)
+{
+    Signal->RunAverCoef = RunAverCoef;
+    Signal->SampleFreq = SampleFreq;
+    Signal->Value = 0;
+    Signal->Out = 0;
+    Signal->SampleFreqCount = 0;
+    Signal->Filtered = 0;
+}
 
 /**
  * @brief Простое осреднение по SampleSize точкам
  * 
- * @param Value - новое значение в выборку
- * @return uint16_t - среднее значение (пока набирается новая выборка - высылает старое среднее)
+ * @param Signal - ссылка на структуру фильтра с осреднением 
  */
-uint16_t SimpleAverageFilter(uint16_t Value)
+void AverFilterHandler(AverFilterStruct *Signal)
 {
-    static uint8_t SamplePackCount = 0;
-    static uint8_t SizeCount = 0;
-    static uint32_t SimpleSum = 0;
-    static uint16_t MeanValue = 0;
-
-    SamplePackCount += 1;
-    if (SamplePackCount >= SampleFreq)
+    Signal->SampleFreqCount++;
+    if (Signal->SampleFreqCount >= Signal->SampleFreq)
     {
-        SamplePackCount = 0;
-        SizeCount += 1;
-        SimpleSum = SimpleSum + Value;
-        if (SizeCount >= SampleSize)
+        Signal->SampleFreqCount = 0;
+        Signal->SampleCount++;
+        Signal->Sum += Signal->Value;
+        if (Signal->SampleCount >= Signal->SampleSize)
         {
-            MeanValue = SimpleSum / SizeCount;
-            EndOfFilterFlag = 1;
-            SizeCount = 0;
-            SimpleSum = 0;
+            Signal->Out = Signal->Sum / Signal->SampleCount;
+            Signal->SampleCount = 0;
+            Signal->Sum = 0;
+            Signal->Filtered = 1;
         }
     }
-    return MeanValue;
 }
 
 /**
  * @brief Осреднение с исключением максимального и минимального значения. 
  * Внимание! Минимальное значение выборки в этом случае равно 3!
  * 
- * @param Value - новое значение в выборку
- * @return uint16_t - среднее значение (пока набирается новая выборка - высылает старое среднее)
+ * @param Signal - ссылка на структуру фильтра с осреднением и исключеним двух экстремумов выборки
  */
-uint16_t ExcludeAverageFilter(uint16_t Value)
+void ExclAverFilterHandler(ExclAverFilterStruct *Signal)
 {
-    static uint8_t SamplePackCount = 0;
-    static uint8_t SizeCount = 0;
-    static uint32_t SimpleSum = 0;
-    static uint16_t MeanValue = 0;
-    static uint16_t MaxValue = 0;
-    static uint16_t MinValue = 65535;
-
-    SamplePackCount += 1;
-    if (SamplePackCount >= SampleFreq)
+    Signal->SampleFreqCount++;
+    if (Signal->SampleFreqCount >= Signal->SampleFreq)
     {
-        SamplePackCount = 0;
-        SizeCount += 1;
-        SimpleSum = SimpleSum + Value;
-        if (MaxValue < Value)
-            MaxValue = Value;
-        if (MinValue > Value)
-            MinValue = Value;
-
-        if (SizeCount >= SampleSize)
+        Signal->SampleFreqCount = 0;
+        Signal->SampleCount++;
+        Signal->Sum += Signal->Value;
+        /*Поиск экстремумов, которые будут выкидываться из расчета*/
+        if (Signal->MaxValue < Signal->Value)
         {
-            MeanValue = (SimpleSum - MaxValue - MinValue) / (SizeCount - 2);
-            EndOfFilterFlag = 1;
-            SizeCount = 0;
-            SimpleSum = 0;
-            MaxValue = 0;
-            MinValue = 65535;
+            Signal->MaxValue = Signal->Value;
+        }
+        if (Signal->MinValue > Signal->Value)
+        {
+            Signal->MinValue = Signal->Value;
+        }
+        if (Signal->SampleCount >= Signal->SampleSize)
+        {
+
+            Signal->Out = (Signal->Sum - Signal->MaxValue - Signal->MinValue) / (Signal->SampleCount - 2);
+            Signal->SampleCount = 0;
+            Signal->Sum = 0;
+            Signal->MinValue = UINT16_MAX;
+            Signal->MaxValue = 0;
+            Signal->Filtered = 1;
         }
     }
-    return MeanValue;
 }
 
 /**
  * @brief Медианный фильтр по трем точкам. Выдает среднее из трех записанных точек.
  * 
- * @param Value - новое значение в выборку
- * @return uint16_t - отфильтрованное значение (пока набирается новая выборка - высылает предыдущее отфильтрованнон)
+ * @param Signal - ссылка на структуру медианного фильтра
  */
-uint16_t MidleOf3Filter(uint16_t Value)
+void MidleOf3FilterHandler(MidleOf3FilterStruct *Signal)
 {
-    static uint8_t SamplePackCount = 0;
-    static uint8_t SizeCount = 0;
-    static uint16_t Midle = 0;
-    static uint16_t Sample[3] = {0, 0, 0};
-    static uint16_t MaxValueInd = 0;
-    static uint16_t MinValueInd = 0;
-
-    SamplePackCount += 1;
-    if (SamplePackCount >= SampleFreq)
+    Signal->SampleFreqCount++;
+    if (Signal->SampleFreqCount >= Signal->SampleFreq)
     {
-        SamplePackCount = 0;
-        SizeCount += 1;
-        Sample[SizeCount - 1] = Value;
-        if (Sample[MaxValueInd] < Value)
-            MaxValueInd = SizeCount - 1;
-        if (Sample[MinValueInd] > Value)
-            MinValueInd = SizeCount - 1;
+        Signal->SampleFreqCount = 0;
+        Signal->Sample[Signal->SampleCount] = Signal->Value;
+        Signal->SampleCount++;
 
-        if (SizeCount >= 3)
+        if (Signal->SampleCount >= 3)
         {
-            switch (MaxValueInd + MinValueInd)
+            /*Поиск среднего из трех*/
+            if (Signal->Sample[0] >= Signal->Sample[1])
             {
-            case 1:
-                Midle = Sample[2];
-                break;
-            case 2:
-                Midle = Sample[1];
-                break;
-            case 3:
-                Midle = Sample[0];
-                break;
-            default:
-                Midle = Sample[0];
-                break;
+                Signal->MaxValueInd = 0;
+                Signal->MinValueInd = 1;
             }
-            EndOfFilterFlag = 1;
-            SizeCount = 0;
-            MaxValueInd = 0;
-            MinValueInd = 0;
+            else
+            {
+                Signal->MaxValueInd = 1;
+                Signal->MinValueInd = 0;
+            }
+            if (Signal->Sample[2] > Signal->Sample[Signal->MaxValueInd])
+            {
+                Signal->Out = Signal->Sample[Signal->MaxValueInd];
+            }
+            else
+            {
+                if (Signal->Sample[2] < Signal->Sample[Signal->MinValueInd])
+                {
+                    Signal->Out = Signal->Sample[Signal->MinValueInd];
+                }
+                else
+                {
+                    Signal->Out = Signal->Sample[2];
+                }
+            }
+            Signal->SampleCount = 0;
+            Signal->Filtered = 1;
         }
     }
-    return Midle;
 }
+
 /**
  * @brief Бегущее среднее (вроде по двум точкам). Настраиваемый параметр RunningAverageCoeff -
  * резкость фильтрации. На результаты сильно влияет частота опроса.
  * 
- * @param Value - новое значение в выборку
- * @return uint16_t - отфильтрованное значение (пока набирается новая выборка - высылает предыдущее отфильтрованнон)
+ * @param Signal - ссылка на структуру фильтра бегущим средним
  */
-uint16_t RunningAverage(uint16_t Value)
+void RuningAverFilterHandler(RuningAverFilterStruct *Signal)
 {
-    static uint8_t SamplePackCount = 0;
-    static uint16_t FilteredValue = 0;
-
-    SamplePackCount += 1;
-    if (SamplePackCount >= SampleFreq)
+    Signal->SampleFreqCount++;
+    if (Signal->SampleFreqCount >= Signal->SampleFreq)
     {
-        SamplePackCount = 0;
-        FilteredValue = (Value - FilteredValue) * RunningAverageCoeff + FilteredValue;
+        Signal->SampleFreqCount = 0;
+        Signal->Out = (Signal->Value - Signal->Out) * Signal->RunAverCoef + Signal->Out;
     }
-    return FilteredValue;
+    Signal->Filtered = 1;
 }
 
-/**
- * @brief Медианная фильтрация (предфильтрация) + фильтрация бегущим средним.
- * Если чатота выборок больше 1, то стоит помнить, что в данной реализации чатота выборок будет
- * больше в SampleFreq^3 раз.
- * @param Value - новое значение в выборку
- * @return uint16_t - отфильтрованное значение (пока набирается новая выборка - высылает предыдущее отфильтрованнон)
- */
-uint16_t CombinedFilterSample = 1;
-uint16_t MidleOf3ANDRunningAverage(uint16_t Value)
-{
-    static uint8_t SamplePackCount = 0;
-    static uint8_t SizeCount = 0;
-    static uint16_t PreFilteredValue = 0;
-    static uint16_t FilteredValue = 0;
-
-    SamplePackCount += 1;
-    if (SamplePackCount >= CombinedFilterSample)
-    {
-        SamplePackCount = 0;
-        SizeCount += 1;
-        PreFilteredValue = MidleOf3Filter(Value);
-        if (SizeCount == 3)
-        {
-            SizeCount = 0;
-            FilteredValue = RunningAverage(PreFilteredValue);
-            EndOfCombinedFilter = 1;
-        }
-    }
-    return FilteredValue;
-}
+/*Интересные результаты дает фильтрация мединным фильтром, а затем бегущим средним*/
