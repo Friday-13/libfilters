@@ -1,3 +1,6 @@
+// Copyright © 2022 Samsonenko Dmitry. All rights reserved.
+// License: http://opensource.org/licenses/MIT
+
 #include "stm32f1xx_hal.h"
 #ifndef LIBFILTERS_H_
 #define LIBFILTERS_H_

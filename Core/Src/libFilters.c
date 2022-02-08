@@ -1,3 +1,6 @@
+// Copyright © 2022 Samsonenko Dmitry. All rights reserved.
+// License: http://opensource.org/licenses/MIT
+
 #include "libFilters.h"
 
 void InitAverFilter(AverFilterStruct *Signal, uint8_t SampleSize, uint8_t SampleFreq)
