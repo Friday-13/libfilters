@@ -49,7 +49,8 @@ Items 1 and 2 - once, during configuration.
 
 The *FilterHandler* function is universal and is called for any of the filters. The required handler is selected automatically, depending on the passed parameter.
 
-
+## Acknowledgments
+[AlexGyver](https://github.com/GyverLibs/GyverFilters)
 
 # Описание проекта [Rus]
 
@@ -101,3 +102,6 @@ The *FilterHandler* function is universal and is called for any of the filters. 
 Пункты 1 и 2 - единожды, при конфигурации. 
 
 Функция *FilterHandler* универсальная и вызывается для любого из фильтров. Нужный обработчик выбирается автоматически, в зависимости от переданного параметра.
+
+## Благодарности
+[AlexGyver](https://github.com/GyverLibs/GyverFilters)
